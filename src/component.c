@@ -1,11 +1,12 @@
 #include "LSMT.h"
+
 struct component * component_create ( size_t capacity ) {
 	struct component * component;
 	component = malloc(sizeof(struct component));
 	component->nument = 0;
 	component->capacity = capacity;
 	component->keys = malloc(sizeof(uint32_t) * capacity);
-	component->entrefs = malloc(sizeof(struct entry *) * capacity);
+	component->entrefs = calloc(capacity, sizeof(struct entry *));
 	return component;
 }
 
@@ -16,6 +17,7 @@ void component_free (struct component * component) {
 }
 
 uint32_t component_find_idx (struct component * component, uint32_t key) {
+	// This function does NOT check the index overflow
 	int idx;
 	for (idx = 0; idx < component->nument; idx++) {
 		if (component->keys[idx] == key) {
@@ -63,16 +65,32 @@ void component_expr (struct component * component) {
 
 struct entry * component_find (struct component * component, uint32_t key) {
 	uint32_t idx = component_find_idx(component, key);
-	return component->entrefs[idx];
+	return idx < component->capacity ? component->entrefs[idx] : NULL;
 }
 
-struct entry * component_delete (struct component * component, uint32_t key);
+void component_delete (struct component * component, uint32_t key) {
+	uint32_t idx = component_find_idx(component, key);
+	if (idx >= component->nument) {
+		// Such key does not exist
+		return;
+	}
+	entry_free(component->entrefs[idx]);
+	for (int i = idx; i < component->nument-1; i++) {
+		component->keys[i] = component->keys[i+1];
+		component->entrefs[i] = component->entrefs[i+1];
+	}
+	component->keys[component->nument-1] = 0;
+	component->entrefs[component->nument-1] = NULL;
+	component->nument--;
+}
 
 
 int main() {
 	#define CAPACITY 10
 	#define DATALEN 8
 	struct component *c = component_create(CAPACITY);
+	
+	printf("Overflow Test\n");
 	struct entry * e[CAPACITY+5];
 	char data[DATALEN];
 	for (int i = 0; i < CAPACITY+5 ; i++) {
@@ -82,6 +100,32 @@ int main() {
 		component_insert(c, i, e[i]);
 	}
 	component_expr(c);
+	
+	printf("Search Test\n");
+	struct entry * res;
+	for (int i = 0; i < CAPACITY + 10; i++) {
+		res = component_find(c, i);
+		if (res) {
+			printf("For key %u, found %s\n", i, res->bytes);
+		} else {
+			printf("No entry found for key %u\n", i);
+		}
+	}
+	component_expr(c);
+
+	printf("Delete Test\n");
+	for (int i = 0; i < CAPACITY - 5; i++) {
+		component_delete(c, i);
+	}
+	component_expr(c);
+
+	printf("Delete non-existing key test\n");
+	component_delete(c, 0);
+	component_expr(c);
+
+	
+	printf("Free Test\n");
 	component_free(c);
+	printf("End of all tests.\n");
 	return 0;
 }

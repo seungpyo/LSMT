@@ -27,7 +27,7 @@ void component_insert (struct component * component,
 						uint32_t key, struct entry * entry);
 void component_expr (struct component * component);
 struct entry * component_find (struct component * component, uint32_t key);
-struct entry * component_delete (struct component * component, uint32_t key);
+void component_delete (struct component * component, uint32_t key);
 
 struct lsmt {
 	struct component * components;
