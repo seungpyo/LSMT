@@ -24,15 +24,18 @@ uint32_t component_find_idx (struct component * component, uint32_t key) {
 			return idx;
 		}
 	}
-	return idx;
+	return -1;
 }
 
 
 void component_insert (struct component * component, 
 						uint32_t key, struct entry * entry) {
 	uint32_t idx = component_find_idx(component, key);
-	if (idx >= component->capacity) {
+	if (idx == -1) {
 		// Current component is full; rolling merge should be done.
+		idx = component->nument++;
+	}
+	if (component->nument > component->capacity) {
 		printf("Current component is full, but rolling merge NYI\n");
 		return;
 	}
@@ -65,12 +68,12 @@ void component_expr (struct component * component) {
 
 struct entry * component_find (struct component * component, uint32_t key) {
 	uint32_t idx = component_find_idx(component, key);
-	return idx < component->capacity ? component->entrefs[idx] : NULL;
+	return idx != -1 ? component->enterfs[idx] : NULL;
 }
 
 void component_delete (struct component * component, uint32_t key) {
 	uint32_t idx = component_find_idx(component, key);
-	if (idx >= component->nument) {
+	if (idx == -1) {
 		// Such key does not exist
 		return;
 	}
